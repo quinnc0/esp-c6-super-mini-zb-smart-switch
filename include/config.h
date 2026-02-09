@@ -11,8 +11,8 @@
 // ============================================================================
 
 #define FLOW_SENSOR_PIN 2       // GPIO2 (D2) - YF-S201 flow sensor signal
-#define BATTERY_PIN A0          // GPIO4 (A0) - Battery voltage monitor (optional)
-#define LED_PIN LED_BUILTIN     // Built-in LED for status indication
+#define BATTERY_PIN 0           // GPIO0 - Battery voltage monitor (optional)
+#define LED_PIN 8    // Built-in LED for status indication
 
 // ============================================================================
 // Flow Sensor Configuration
@@ -52,15 +52,15 @@
 // ============================================================================
 
 // Zigbee network settings
-#define ZIGBEE_CHANNEL 11         // Zigbee channel (11-26, avoid WiFi channels)
-#define ZIGBEE_PAN_ID 0x1A62     // Personal Area Network ID (use your coordinator's PAN ID)
+#define ZIGBEE_CHANNEL 15         // Zigbee channel (11-26, avoid WiFi channels)
+#define ZIGBEE_PAN_ID 0xA209     // Personal Area Network ID (use your coordinator's PAN ID)
 
 // Device endpoints
 #define FLOW_ENDPOINT 10         // Flow measurement endpoint
 #define BATTERY_ENDPOINT 1       // Battery endpoint (optional)
 
 // Zigbee report intervals (seconds)
-#define FLOW_REPORT_INTERVAL 30      // Report flow every 30 seconds
+#define FLOW_REPORT_INTERVAL 3      // Report flow every 3 seconds
 #define BATTERY_REPORT_INTERVAL 600  // Report battery every 10 minutes
 
 // Report triggers
