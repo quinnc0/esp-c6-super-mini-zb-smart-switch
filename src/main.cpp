@@ -20,19 +20,21 @@
  * Based on: Arduino ESP32 Zigbee ColorDimmableLight example
  */
 
-#ifndef ZIGBEE_MODE_ED
-#error "Zigbee end device mode is not selected in Tools->Zigbee mode"
-#endif
-
 #include <Arduino.h>
 #include "Zigbee.h"
 
-/* Zigbee contact switch configuration */
-#define ZIGBEE_TEST_ENDPOINT 10
+// PIN definitions
 #define CONTACT_SWITCH_PIN 3
 #define STATUS_LED_PIN 15
+#define BATTERY_VOLTAGE_PIN 34
+// Zigbee endpoints
+#define ZIGBEE_TEST_ENDPOINT 10
+#define BATTERY_VOLTAGE_ENDPOINT 4
 
 ZigbeeContactSwitch zbContactSwitch = ZigbeeContactSwitch(ZIGBEE_TEST_ENDPOINT);
+
+void setupZigbee();
+void handleContactSwitch();
 
 /********************* Arduino functions **************************/
 void setup() {
@@ -49,32 +51,14 @@ void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
 
   // Optional: Set Zigbee device name and model
-  zbContactSwitch.setManufacturerAndModel("Espressif", "ZBContactSwitch");
+  zbContactSwitch.setManufacturerAndModel("Super Mini", "Smart Switch");
 
   // Add endpoint to Zigbee Core
   Serial.println("Adding Zigbee endpoint to Zigbee Core");
   Zigbee.addEndpoint(&zbContactSwitch);
 
-  // When all EPs are registered, start Zigbee in End Device mode
-  Serial.println("Starting Zigbee...");
-  if (!Zigbee.begin()) {
-    Serial.println("Zigbee failed to start!");
-    Serial.println("Rebooting...");
-    ESP.restart();
-  }
-  
-  Serial.println("Zigbee started successfully!");
-  Serial.println("Connecting to network");
-  
-  while (!Zigbee.connected()) {
-    Serial.print(".");
-    delay(100);
-  }
-  
-  Serial.println();
-  Serial.println("\n========================================");
-  Serial.println("SUCCESS! Zigbee connected!");
-  Serial.println("========================================\n");
+  // Start Zigbee and connect to network
+  setupZigbee();
   
   // Enroll the IAS Zone device with the coordinator
   Serial.println("Enrolling IAS Zone...");
@@ -85,7 +69,46 @@ void setup() {
   }
 }
 
-// Debounced contact switch handler - handles immediately, then ignores bounces
+void loop() {
+  // Print status every 5 seconds
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint > 5000) {
+    Serial.println("Alive... Zigbee connected: " + String(Zigbee.connected() ? "YES" : "NO"));
+    lastPrint = millis();
+  }
+
+  handleContactSwitch();
+}
+
+//===============================================================================//
+//------------------------------- Helper functions ------------------------------//
+//===============================================================================//
+
+// Zigbee setup function - initializes Zigbee and waits for connection
+void setupZigbee() {
+        Serial.println("Starting Zigbee...");
+        if (!Zigbee.begin()) {
+            Serial.println("Zigbee failed to start!");
+            Serial.println("Rebooting...");
+            ESP.restart();
+        }
+        
+        Serial.println("Zigbee started successfully!");
+        Serial.println("Connecting to network");
+        
+        while (!Zigbee.connected()) {
+            Serial.print(".");
+            delay(100);
+        }
+        
+        Serial.println();
+        Serial.println("\n========================================");
+        Serial.println("SUCCESS! Zigbee connected!");
+        Serial.println("========================================\n");
+        return;
+}
+
+// Debounced contact switch handler - reacts immediately, then ignores bounces
 void handleContactSwitch() {
   static bool lastReportedState = true; // true = open (not pushed), false = closed (pushed)
   static unsigned long lastChangeTime = 0;
@@ -102,25 +125,13 @@ void handleContactSwitch() {
     
     // Report to Zigbee using correct methods
     if (contactOpen) {
-      zbContactSwitch.setOpen();
-      digitalWrite(STATUS_LED_PIN, HIGH);
-      Serial.println("Button is released.");
-    } else {
       zbContactSwitch.setClosed();
       digitalWrite(STATUS_LED_PIN, LOW);
       Serial.println("Button is pressed.");
+    } else {
+      zbContactSwitch.setOpen();
+      digitalWrite(STATUS_LED_PIN, HIGH);
+      Serial.println("Button is released.");
     }
   }
 }
-
-void loop() {
-  // Print status every 5 seconds
-  static unsigned long lastPrint = 0;
-  if (millis() - lastPrint > 5000) {
-    Serial.println("Alive... Zigbee connected: " + String(Zigbee.connected() ? "YES" : "NO"));
-    lastPrint = millis();
-  }
-
-  handleContactSwitch();
-}
-
