@@ -26,15 +26,21 @@
 // PIN definitions
 #define CONTACT_SWITCH_PIN 3
 #define STATUS_LED_PIN 15
-#define BATTERY_VOLTAGE_PIN 34
+#define BATTERY_VOLTAGE_PIN 2
 // Zigbee endpoints
 #define ZIGBEE_TEST_ENDPOINT 10
 #define BATTERY_VOLTAGE_ENDPOINT 4
+// Voltage divider resistors for battery voltage measurement (in kΩ)
+// Adjust these values based on your actual resistor values
+const uint32_t V_DIVIDER_R1 = 55; //39; // Resistor between battery and pin
+const uint32_t V_DIVIDER_R2 = 99; //100; // Resistor between pin and ground
 
 ZigbeeContactSwitch zbContactSwitch = ZigbeeContactSwitch(ZIGBEE_TEST_ENDPOINT);
 
 void setupZigbee();
 void handleContactSwitch();
+void handleBatteryVoltage();
+float getLiPoPercentage(float voltage);
 
 /********************* Arduino functions **************************/
 void setup() {
@@ -49,13 +55,16 @@ void setup() {
   pinMode(CONTACT_SWITCH_PIN, INPUT_PULLUP);
   // Init status LED pin
   pinMode(STATUS_LED_PIN, OUTPUT);
+  // Init battery voltage pin
+  pinMode(BATTERY_VOLTAGE_PIN, INPUT);
 
   // Optional: Set Zigbee device name and model
   zbContactSwitch.setManufacturerAndModel("Super Mini", "Smart Switch");
 
-  // Add endpoint to Zigbee Core
+  // Add endpoints to Zigbee Core
   Serial.println("Adding Zigbee endpoint to Zigbee Core");
   Zigbee.addEndpoint(&zbContactSwitch);
+  zbContactSwitch.setPowerSource(ZB_POWER_SOURCE_BATTERY);
 
   // Start Zigbee and connect to network
   setupZigbee();
@@ -78,6 +87,7 @@ void loop() {
   }
 
   handleContactSwitch();
+  handleBatteryVoltage();
 }
 
 //===============================================================================//
@@ -134,4 +144,57 @@ void handleContactSwitch() {
       Serial.println("Button is released.");
     }
   }
+}
+
+// Battery voltage handler - reads voltage using analogReadMilliVolts and reports periodically
+void handleBatteryVoltage() {
+	// Battery voltage variables
+	static unsigned long lastBatteryReport = 0;
+	const unsigned long BATTERY_REPORT_INTERVAL = 10000; // Report every 60 seconds
+  if (millis() - lastBatteryReport >= BATTERY_REPORT_INTERVAL) {
+		lastBatteryReport = millis();
+    
+    // Read voltage in millivolts (more accurate than ADC conversion)
+    uint32_t pinMillivolts = analogReadMilliVolts(BATTERY_VOLTAGE_PIN);
+    
+    // Voltage divider compensation: multiply by (R1 + R2) / R2
+    // Example: For 39kΩ + 100kΩ divider: multiply by 1.39 (or 139/100)
+    uint32_t actualBatteryMillivolts = (pinMillivolts * (V_DIVIDER_R1 + V_DIVIDER_R2)) / V_DIVIDER_R2;
+    
+    // Convert to voltage for display
+    float batteryVoltage = actualBatteryMillivolts / 1000.0;
+    
+    // Calculate battery percentage (for LiPo: 4.2V = 100%, 3.0V = 0%)
+    const float MAX_VOLTAGE = 4.2;
+    const float MIN_VOLTAGE = 3.0;
+    float batteryPercent = getLiPoPercentage(batteryVoltage);
+    
+    // Report to Zigbee (voltage in millivolts and percentage)
+    // Note: Zigbee battery voltage is typically reported in 100mV units
+    uint8_t zigbeeBatteryVoltage = actualBatteryMillivolts / 100; // Convert mV to 100mV units
+    uint8_t zigbeeBatteryPercent = (uint8_t)batteryPercent; // 0-100 scale (library handles Zigbee conversion)
+		zbContactSwitch.setBatteryVoltage(zigbeeBatteryVoltage);
+		zbContactSwitch.setBatteryPercentage(zigbeeBatteryPercent);
+		zbContactSwitch.reportBatteryPercentage();
+    
+    Serial.printf("Battery: %.2fV (%dmV raw, %dmV actual) - %.1f%%\n", 
+                  batteryVoltage, pinMillivolts, actualBatteryMillivolts, batteryPercent);
+  }
+}
+
+// Use a more accurate percentage calculation for LiPo batteries based on voltage thresholds and non-linear discharge curve
+float getLiPoPercentage(float voltage) {
+	/*
+	const float MAX_VOLTAGE = 4.2;
+	const float MIN_VOLTAGE = 3.0;
+	float percent = ((voltage - MIN_VOLTAGE) / (MAX_VOLTAGE - MIN_VOLTAGE)) * 100.0;
+	return constrain(percent, 0, 100);
+	*/
+	if (voltage >= 4.1) return 100.0;
+  else if (voltage >= 3.9) return 80.0 + (voltage - 3.9) * 100.0; // 3.9-4.1V = 80-100%
+  else if (voltage >= 3.7) return 50.0 + (voltage - 3.7) * 150.0; // 3.7-3.9V = 50-80%
+  else if (voltage >= 3.5) return 30.0 + (voltage - 3.5) * 100.0; // 3.5-3.7V = 30-50%
+  else if (voltage >= 3.3) return 10.0 + (voltage - 3.3) * 100.0; // 3.3-3.5V = 10-30%
+  else if (voltage >= 3.0) return (voltage - 3.0) * 33.3;          // 3.0-3.3V = 0-10%
+  else return 0.0;
 }
