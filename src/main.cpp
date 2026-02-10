@@ -23,6 +23,8 @@
 #include <Arduino.h>
 #include "Zigbee.h"
 
+#define BATTERY_ENABLED true  // Set to true if battery monitoring is needed
+
 // PIN definitions
 #define CONTACT_SWITCH_PIN 3
 #define STATUS_LED_PIN 15
@@ -39,6 +41,7 @@ ZigbeeContactSwitch zbContactSwitch = ZigbeeContactSwitch(ZIGBEE_TEST_ENDPOINT);
 
 void setupZigbee();
 void handleContactSwitch();
+void setupBatteryMonitoring(ZigbeeEP *zbEndPoint);
 void handleBatteryVoltage();
 float getLiPoPercentage(float voltage);
 
@@ -55,8 +58,7 @@ void setup() {
   pinMode(CONTACT_SWITCH_PIN, INPUT_PULLUP);
   // Init status LED pin
   pinMode(STATUS_LED_PIN, OUTPUT);
-  // Init battery voltage pin
-  pinMode(BATTERY_VOLTAGE_PIN, INPUT);
+  
 
   // Optional: Set Zigbee device name and model
   zbContactSwitch.setManufacturerAndModel("Super Mini", "Smart Switch");
@@ -64,7 +66,12 @@ void setup() {
   // Add endpoints to Zigbee Core
   Serial.println("Adding Zigbee endpoint to Zigbee Core");
   Zigbee.addEndpoint(&zbContactSwitch);
-  zbContactSwitch.setPowerSource(ZB_POWER_SOURCE_BATTERY);
+
+  if (BATTERY_ENABLED) {
+		// Setup battery monitoring
+		Serial.println("Setting up battery monitoring...");
+		setupBatteryMonitoring(&zbContactSwitch);
+	}
 
   // Start Zigbee and connect to network
   setupZigbee();
@@ -87,7 +94,10 @@ void loop() {
   }
 
   handleContactSwitch();
-  handleBatteryVoltage();
+  
+  if (BATTERY_ENABLED) {
+  	handleBatteryVoltage();
+  }
 }
 
 //===============================================================================//
@@ -144,6 +154,14 @@ void handleContactSwitch() {
       Serial.println("Button is released.");
     }
   }
+}
+
+// Battery monitoring setup - can be called in setup() to initialize any necessary variables or states
+// inputs - pointer to ZigbeeEP object to report battery status to
+void setupBatteryMonitoring(ZigbeeEP *zbEndPoint) {
+	// Init battery voltage pin
+  pinMode(BATTERY_VOLTAGE_PIN, INPUT);
+	zbEndPoint->setPowerSource(ZB_POWER_SOURCE_BATTERY);
 }
 
 // Battery voltage handler - reads voltage using analogReadMilliVolts and reports periodically
