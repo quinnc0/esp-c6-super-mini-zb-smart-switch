@@ -23,7 +23,7 @@
 #include <Arduino.h>
 #include "Zigbee.h"
 
-#define BATTERY_ENABLED true  // Set to true if battery monitoring is needed
+#define BATTERY_ENABLED false  // Set to true if battery monitoring is needed
 
 // PIN definitions
 #define CONTACT_SWITCH_PIN 3
@@ -94,7 +94,7 @@ void loop() {
   }
 
   handleContactSwitch();
-  
+
   if (BATTERY_ENABLED) {
   	handleBatteryVoltage();
   }
