@@ -37,28 +37,20 @@ bool sleepTimerStarted = false;
 void setupZigbee();
 void rgbLed(bool on);
 void goToSleep();
+void onWakeCheck();
 
 /********************* Arduino functions **************************/
 void setup() {
-  Serial.begin(SERIAL_BAUD_RATE);
-  delay(1000);
+  #if ENABLE_SERIAL
+    Serial.begin(SERIAL_BAUD_RATE);
+    delay(50);  // Reduced from 1000ms - just enough for USB-Serial enumeration
+  #endif
 
-  Serial.println("\n\n========================================");
-  Serial.println("CONTACT SWITCH ZIGBEE TEST - PlatformIO");
-  Serial.println("========================================\n");
+  DEBUG_PRINTLN("\n\n========================================");
+  DEBUG_PRINTLN("CONTACT SWITCH ZIGBEE TEST - PlatformIO");
+  DEBUG_PRINTLN("========================================\n");
 
-  // Check if we woke from deep sleep and deinit RTC GPIO if needed
-  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
-  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1) {
-    Serial.println("Woke up from button press!");
-    // Deinitialize RTC GPIO so pinMode can reconfigure it
-    rtc_gpio_deinit((gpio_num_t)CONTACT_SWITCH_PIN);
-  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
-    Serial.println("Woke up from timer!");
-    rtc_gpio_deinit((gpio_num_t)CONTACT_SWITCH_PIN);
-  } else {
-    Serial.println("Normal startup (not from deep sleep)");
-  }
+  onWakeCheck(); // Check if we woke from deep sleep and handle RTC GPIO if needed
 
   // Init status LED pin
   pinMode(STATUS_LED_PIN, OUTPUT);
@@ -77,6 +69,10 @@ void setup() {
   digitalWrite(STATUS_LED_PIN, HIGH);
 }
 
+//===============================================================================//
+//------------------------------- Main Loop -------------------------------------//
+//===============================================================================//
+
 void loop() {
   // Start sleep timer on first loop iteration
   if (!sleepTimerStarted) {
@@ -92,8 +88,10 @@ void loop() {
   // Update status LED based on switch state
   if (smartSwitch.getSwitchState()) {
     rgbLed(false); // RGB LED on when switch is closed
+    // reset sleep timer when switch is closed to keep device awake while in use
   } else {
     rgbLed(true); // RGB LED off when switch is open
+    loopStartTime = millis();
   }
   
   // Check if it's time to sleep
@@ -108,25 +106,25 @@ void loop() {
 
 // Zigbee setup function - initializes Zigbee and waits for connection
 void setupZigbee() {
-        Serial.println("Starting Zigbee...");
+        DEBUG_PRINTLN("Starting Zigbee...");
         if (!Zigbee.begin()) {
-            Serial.println("Zigbee failed to start!");
-            Serial.println("Rebooting...");
+            DEBUG_PRINTLN("Zigbee failed to start!");
+            DEBUG_PRINTLN("Rebooting...");
             ESP.restart();
         }
         
-        Serial.println("Zigbee started successfully!");
-        Serial.println("Connecting to network");
+        DEBUG_PRINTLN("Zigbee started successfully!");
+        DEBUG_PRINTLN("Connecting to network");
         
         while (!Zigbee.connected()) {
-            Serial.print(".");
+            DEBUG_PRINT(".");
             delay(100);
         }
         
-        Serial.println();
-        Serial.println("\n========================================");
-        Serial.println("SUCCESS! Zigbee connected!");
-        Serial.println("========================================\n");
+        DEBUG_PRINTLN();
+        DEBUG_PRINTLN("\n========================================");
+        DEBUG_PRINTLN("SUCCESS! Zigbee connected!");
+        DEBUG_PRINTLN("========================================\n");
         return;
 }
 
@@ -138,10 +136,23 @@ void rgbLed(bool on) {
   uint8_t brightness = 255; // Adjust brightness (0-255)
   rgbLedWrite(RGB_BUILTIN, r, g, b);
 }
-
+void onWakeCheck() {
+  // Check if we woke from deep sleep and deinit RTC GPIO if needed
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1) {
+    DEBUG_PRINTLN("Woke up from button press!");
+    // Deinitialize RTC GPIO so pinMode can reconfigure it
+    rtc_gpio_deinit((gpio_num_t)CONTACT_SWITCH_PIN);
+  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+    DEBUG_PRINTLN("Woke up from timer!");
+    rtc_gpio_deinit((gpio_num_t)CONTACT_SWITCH_PIN);
+  } else {
+    DEBUG_PRINTLN("Normal startup (not from deep sleep)");
+  }
+}
 // Put device into deep sleep
 void goToSleep() {
-  Serial.println("Configuring wake-up sources...");
+  DEBUG_PRINTLN("Configuring wake-up sources...");
   
   // Configure RTC GPIO for wake-up
   // ESP32-C6 RTC GPIO pins: GPIO0-GPIO7
@@ -173,19 +184,19 @@ void goToSleep() {
   // ESP_EXT1_WAKEUP_ANY_HIGH: wake when pin goes HIGH (for pull-down button)
   // esp_sleep_enable_ext1_wakeup(ext1_pin_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
   
-  Serial.println("Wake on button press enabled (EXT1 with pull-up)");
+  DEBUG_PRINTLN("Wake on button press enabled (EXT1 with pull-up)");
   
   // Optional: You can also enable timer wake-up for periodic checks
   // Uncomment the following lines to wake up every X seconds:
   // #define TIMER_WAKEUP_SECONDS 300  // Wake up every 5 minutes
   // esp_sleep_enable_timer_wakeup(TIMER_WAKEUP_SECONDS * 1000000ULL);
-  // Serial.printf("Timer wake-up enabled (every %d seconds)\n", TIMER_WAKEUP_SECONDS);
+  // DEBUG_PRINTF("Timer wake-up enabled (every %d seconds)\n", TIMER_WAKEUP_SECONDS);
   
   // Turn off RGB LED to save power
   rgbLedWrite(RGB_BUILTIN, 0, 0, 0);
   
-  Serial.println("Entering deep sleep now...");
-  Serial.flush(); // Wait for serial to finish
+  DEBUG_PRINTLN("Entering deep sleep now...");
+  DEBUG_FLUSH(); // Wait for serial to finish
   
   // Enter deep sleep
   digitalWrite(STATUS_LED_PIN, LOW);

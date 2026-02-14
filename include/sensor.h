@@ -1,5 +1,6 @@
 #pragma once
 #include "ZigbeeEP.h"
+#include "config.h"
 
 // Sensor base class definition
 // sensors will inherit from this class
@@ -70,7 +71,7 @@ public:
                 _zigbeeEndpoint->setBatteryPercentage(zigbeeBatteryPercent);
                 _zigbeeEndpoint->reportBatteryPercentage();
             
-            Serial.printf("Battery: %.2fV (%dmV raw, %dmV actual) - %.1f%%\n", 
+            DEBUG_PRINTF("Battery: %.2fV (%dmV raw, %dmV actual) - %.1f%%\n", 
                         batteryVoltage, pinMillivolts, actualBatteryMillivolts, batteryPercent);
         }
     }

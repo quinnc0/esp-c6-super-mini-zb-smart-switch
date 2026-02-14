@@ -1,6 +1,25 @@
 #pragma once
 
 // ============================================================================
+// Serial Debug Configuration
+// ============================================================================
+
+// Set to false for production to save power and boot time
+#define ENABLE_SERIAL false
+
+#if ENABLE_SERIAL
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+  #define DEBUG_PRINTF(fmt, ...) Serial.printf(fmt, __VA_ARGS__)
+  #define DEBUG_FLUSH() Serial.flush()
+#else
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+  #define DEBUG_PRINTF(fmt, ...)
+  #define DEBUG_FLUSH()
+#endif
+
+// ============================================================================
 // Pin Configuration
 // ============================================================================
 
