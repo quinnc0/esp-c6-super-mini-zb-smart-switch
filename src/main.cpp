@@ -33,7 +33,7 @@ void rgbLed(bool on);
 
 /********************* Arduino functions **************************/
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD_RATE);
   delay(1000);
 
   Serial.println("\n\n========================================");
@@ -48,6 +48,7 @@ void setup() {
 
   // Add endpoints to Zigbee Core
   smartSwitch.setup();
+  smartSwitch.setBatteryReportInterval(BATTERY_CHECK_INTERVAL);
 
   // Start Zigbee and connect to network
   setupZigbee();
