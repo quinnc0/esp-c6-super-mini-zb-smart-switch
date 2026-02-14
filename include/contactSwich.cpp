@@ -2,14 +2,14 @@
 
 ContactSwitch::ContactSwitch(uint8_t endpointId, uint8_t pin, bool batteryMonitoring, uint8_t batteryPin)
     : _zigbeeSwitch(endpointId),           // Initialize ZigbeeContactSwitch first
-      ZbSensor(&_zigbeeSwitch)              // Pass pointer to superclass
+      ZbSensor(&_zigbeeSwitch)             // Pass pointer to superclass
 {
     // Store endpoint ID and pin for later use
     _endpointId = endpointId;
     _pin = pin;
     
     // Optional: Setup battery monitoring if enabled
-    if (batteryMonitoring) {
+    if (batteryMonitoring && batteryPin != -1) {
         _batteryMonitoring = true;
         _batteryPin = batteryPin;
     } else {
@@ -58,5 +58,15 @@ void ContactSwitch::tick()
         //digitalWrite(STATUS_LED_PIN, HIGH);
         Serial.println("Button is released.");
         }
+    }
+}
+
+void ContactSwitch::IASZoneEnrollment()
+{
+    Serial.println("Enrolling IAS Zone...");
+    if (_zigbeeSwitch.requestIASZoneEnroll()) {
+        Serial.println("IAS Zone enrollment requested successfully");
+    } else {
+        Serial.println("IAS Zone enrollment request failed");
     }
 }

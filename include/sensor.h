@@ -36,6 +36,8 @@ public:
 
     // Method to read battery voltage and report to Zigbee
     virtual void reportBatteryStatus(uint32_t vDividerR1, uint32_t vDividerR2) {
+        if (!_batteryMonitoring) return; // Skip if battery monitoring not enabled
+        
         // Battery voltage variables
         static unsigned long lastBatteryReport = 0;
         const unsigned long BATTERY_REPORT_INTERVAL = 10000; // Report every X/1000 seconds

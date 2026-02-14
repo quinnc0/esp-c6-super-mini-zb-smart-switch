@@ -7,15 +7,17 @@
 
 class ContactSwitch : public ZbSensor {
 private:
-    uint8_t _endpointId;
-    uint8_t _pin;
+
     ZigbeeContactSwitch _zigbeeSwitch;
+
+    bool _lastReportedState;
+    unsigned long _lastChangeTime;
+    const unsigned long _debounceDelay = 100;  // Increased to give Zigbee/HA time to process
 public:
     //constructor takes Zigbee endpoint ID and sensor PIN
     ContactSwitch(uint8_t endpointId, uint8_t pin, bool batteryMonitoring = false, uint8_t batteryPin = -1);
 
     void setup() override;
     void tick() override;
-    void setManufacturerAndModel(const char* manufacturer, const char* model) override;
-    void setupBatteryMonitoring() override;
+    void IASZoneEnrollment();
 };
