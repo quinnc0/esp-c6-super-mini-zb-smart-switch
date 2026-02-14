@@ -22,24 +22,11 @@
 
 #include <Arduino.h>
 #include "Zigbee.h"
+#include "config.h"
 #include "sensor.h"
 #include "contactSwitch.h"
 
-#define BATTERY_ENABLED true  // Set to true if battery monitoring is needed
-
-// PIN definitions
-#define CONTACT_SWITCH_PIN 3
-#define STATUS_LED_PIN 15
-#define BATTERY_VOLTAGE_PIN 2
-
-// Zigbee endpoints
-#define ZIGBEE_TEST_ENDPOINT 10
-// Voltage divider resistors for battery voltage measurement (in kΩ)
-// Adjust these values based on your actual resistor values
-const uint32_t V_DIVIDER_R1 = 55; //39; // Resistor between battery and pin
-const uint32_t V_DIVIDER_R2 = 99; //100; // Resistor between pin and ground
-
-ContactSwitch smartSwitch = ContactSwitch(ZIGBEE_TEST_ENDPOINT, CONTACT_SWITCH_PIN, BATTERY_ENABLED, BATTERY_VOLTAGE_PIN, V_DIVIDER_R1, V_DIVIDER_R2);
+ContactSwitch smartSwitch = ContactSwitch(SMART_SWITCH, CONTACT_SWITCH_PIN, BATTERY_ENABLED, BATTERY_VOLTAGE_PIN, V_DIVIDER_R1, V_DIVIDER_R2);
 
 void setupZigbee();
 void rgbLed(bool on);

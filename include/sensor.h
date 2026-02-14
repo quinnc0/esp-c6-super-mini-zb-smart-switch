@@ -12,6 +12,8 @@ protected:
     uint8_t _batteryPin;
     uint32_t _vDividerR1;  // Voltage divider R1 (kΩ) - between battery and pin
     uint32_t _vDividerR2;  // Voltage divider R2 (kΩ) - between pin and ground
+    unsigned long _BATTERY_REPORT_INTERVAL = 10000; // interval in ms
+
 
     ZigbeeEP* _zigbeeEndpoint; // Pointer to Zigbee endpoint (subclass provides specific type)
 public:
@@ -42,8 +44,7 @@ public:
         
         // Battery voltage variables
         static unsigned long lastBatteryReport = 0;
-        const unsigned long BATTERY_REPORT_INTERVAL = 10000; // Report every X/1000 seconds
-        if (millis() - lastBatteryReport >= BATTERY_REPORT_INTERVAL) {
+        if (millis() - lastBatteryReport >= _BATTERY_REPORT_INTERVAL) {
                 lastBatteryReport = millis();
             
             // Read voltage in millivolts (more accurate than ADC conversion)
@@ -89,6 +90,10 @@ public:
         else if (voltage >= 3.3) return 10.0 + (voltage - 3.3) * 100.0; // 3.3-3.5V = 10-30%
         else if (voltage >= 3.0) return (voltage - 3.0) * 33.3;          // 3.0-3.3V = 0-10%
         else return 0.0;
+    }
+
+    virtual void setBatteryReportInterval(unsigned long interval) {
+        _BATTERY_REPORT_INTERVAL = interval;
     }
 
     virtual ~ZbSensor() {} // Virtual destructor for proper cleanup
