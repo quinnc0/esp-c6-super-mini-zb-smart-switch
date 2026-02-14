@@ -74,3 +74,8 @@ void ContactSwitch::IASZoneEnrollment()
         Serial.println("IAS Zone enrollment request failed");
     }
 }
+
+bool ContactSwitch::getSwitchState()
+{
+    return digitalRead(_pin) == HIGH;
+}

@@ -25,12 +25,13 @@
 #include "sensor.h"
 #include "contactSwitch.h"
 
-#define BATTERY_ENABLED false  // Set to true if battery monitoring is needed
+#define BATTERY_ENABLED true  // Set to true if battery monitoring is needed
 
 // PIN definitions
 #define CONTACT_SWITCH_PIN 3
 #define STATUS_LED_PIN 15
 #define BATTERY_VOLTAGE_PIN 2
+
 // Zigbee endpoints
 #define ZIGBEE_TEST_ENDPOINT 10
 // Voltage divider resistors for battery voltage measurement (in kΩ)
@@ -41,6 +42,7 @@ const uint32_t V_DIVIDER_R2 = 99; //100; // Resistor between pin and ground
 ContactSwitch smartSwitch = ContactSwitch(ZIGBEE_TEST_ENDPOINT, CONTACT_SWITCH_PIN, BATTERY_ENABLED, BATTERY_VOLTAGE_PIN, V_DIVIDER_R1, V_DIVIDER_R2);
 
 void setupZigbee();
+void rgbLed(bool on);
 
 /********************* Arduino functions **************************/
 void setup() {
@@ -67,15 +69,20 @@ void setup() {
 }
 
 void loop() {
-  // Print status every 5 seconds
-  static unsigned long lastPrint = 0;
-  if (millis() - lastPrint > 5000) {
-    Serial.println("Alive... Zigbee connected: " + String(Zigbee.connected() ? "YES" : "NO"));
-    lastPrint = millis();
-  }
 
+  // Read contact switch state and report to Zigbee
   smartSwitch.tick();
+  // Optional: Read battery voltage and report to Zigbee
   smartSwitch.reportBatteryStatus();
+
+  // Update status LED based on switch state
+  if (smartSwitch.getSwitchState()) {
+    digitalWrite(STATUS_LED_PIN, LOW); // LED on when switch is closed
+    rgbLed(false); // RGB LED on when switch is closed
+  } else {
+    digitalWrite(STATUS_LED_PIN, HIGH); // LED off when switch is open
+    rgbLed(true); // RGB LED off when switch is open
+  }
 }
 
 //===============================================================================//
@@ -104,4 +111,13 @@ void setupZigbee() {
         Serial.println("SUCCESS! Zigbee connected!");
         Serial.println("========================================\n");
         return;
+}
+
+// Control RGB LED
+void rgbLed(bool on) {
+  uint8_t r = on ? 255 : 0;
+  uint8_t g = on ? 0 : 0;
+  uint8_t b = on ? 10 : 0;
+  uint8_t brightness = 255; // Adjust brightness (0-255)
+  rgbLedWrite(RGB_BUILTIN, r, g, b);
 }
