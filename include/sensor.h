@@ -10,11 +10,13 @@ protected:
     uint8_t _pin;
     bool _batteryMonitoring;
     uint8_t _batteryPin;
+    uint32_t _vDividerR1;  // Voltage divider R1 (kΩ) - between battery and pin
+    uint32_t _vDividerR2;  // Voltage divider R2 (kΩ) - between pin and ground
 
     ZigbeeEP* _zigbeeEndpoint; // Pointer to Zigbee endpoint (subclass provides specific type)
 public:
     // Constructor - subclasses must pass their specific endpoint
-    ZbSensor(ZigbeeEP* endpoint) : _zigbeeEndpoint(endpoint), _batteryMonitoring(false), _batteryPin(0) {}
+    ZbSensor(ZigbeeEP* endpoint) : _zigbeeEndpoint(endpoint), _batteryMonitoring(false), _batteryPin(0), _vDividerR1(0), _vDividerR2(0) {}
     
     virtual void setup() = 0;   // Initialize sensor
     virtual void tick() = 0;    // Main sensor logic
@@ -35,7 +37,7 @@ public:
     }
 
     // Method to read battery voltage and report to Zigbee
-    virtual void reportBatteryStatus(uint32_t vDividerR1, uint32_t vDividerR2) {
+    virtual void reportBatteryStatus() {
         if (!_batteryMonitoring) return; // Skip if battery monitoring not enabled
         
         // Battery voltage variables
@@ -49,7 +51,7 @@ public:
             
             // Voltage divider compensation: multiply by (R1 + R2) / R2
             // Example: For 39kΩ + 100kΩ divider: multiply by 1.39 (or 139/100)
-            uint32_t actualBatteryMillivolts = (pinMillivolts * (vDividerR1 + vDividerR2)) / vDividerR2;
+            uint32_t actualBatteryMillivolts = (pinMillivolts * (_vDividerR1 + _vDividerR2)) / _vDividerR2;
             
             // Convert to voltage for display
             float batteryVoltage = actualBatteryMillivolts / 1000.0;

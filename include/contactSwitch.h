@@ -14,8 +14,13 @@ private:
     unsigned long _lastChangeTime;
     const unsigned long _debounceDelay = 100;  // Increased to give Zigbee/HA time to process
 public:
-    //constructor takes Zigbee endpoint ID and sensor PIN
-    ContactSwitch(uint8_t endpointId, uint8_t pin, bool batteryMonitoring = false, uint8_t batteryPin = -1);
+    // Constructor takes Zigbee endpoint ID and sensor PIN
+    // Optional battery monitoring with voltage divider resistor values (in kΩ)
+    ContactSwitch(uint8_t endpointId, uint8_t pin, 
+                  bool batteryMonitoring = false, 
+                  uint8_t batteryPin = 255,
+                  uint32_t vDividerR1 = 0,
+                  uint32_t vDividerR2 = 0);
 
     void setup() override;
     void tick() override;

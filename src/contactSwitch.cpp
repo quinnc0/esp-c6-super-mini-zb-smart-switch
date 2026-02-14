@@ -1,6 +1,8 @@
-#include "contactSwich.h"
+#include "contactSwitch.h"
 
-ContactSwitch::ContactSwitch(uint8_t endpointId, uint8_t pin, bool batteryMonitoring, uint8_t batteryPin)
+ContactSwitch::ContactSwitch(uint8_t endpointId, uint8_t pin, 
+                             bool batteryMonitoring, uint8_t batteryPin,
+                             uint32_t vDividerR1, uint32_t vDividerR2)
     : _zigbeeSwitch(endpointId),           // Initialize ZigbeeContactSwitch first
       ZbSensor(&_zigbeeSwitch)             // Pass pointer to superclass
 {
@@ -9,9 +11,11 @@ ContactSwitch::ContactSwitch(uint8_t endpointId, uint8_t pin, bool batteryMonito
     _pin = pin;
     
     // Optional: Setup battery monitoring if enabled
-    if (batteryMonitoring && batteryPin != -1) {
+    if (batteryMonitoring && batteryPin != 255) {
         _batteryMonitoring = true;
         _batteryPin = batteryPin;
+        _vDividerR1 = vDividerR1;
+        _vDividerR2 = vDividerR2;
     } else {
         _batteryMonitoring = false;
     }

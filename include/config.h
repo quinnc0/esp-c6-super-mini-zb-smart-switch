@@ -69,17 +69,6 @@
 #define BATTERY_CHANGE_THRESHOLD 5       // Report if battery changes by >5%
 
 // ============================================================================
-// Data Persistence Configuration
-// ============================================================================
-
-// EEPROM save settings
-#define SAVE_THRESHOLD 1.0           // Save every 1 liter change
-#define MAX_SAVE_INTERVAL 300000     // Or save every 5 minutes maximum
-
-// EEPROM namespace
-#define EEPROM_NAMESPACE "flowmeter"
-
-// ============================================================================
 // Serial Configuration
 // ============================================================================
 
