@@ -1,4 +1,5 @@
 #include "contactSwitch.h"
+#include "config.h"
 
 ContactSwitch::ContactSwitch(uint8_t endpointId, uint8_t pin, 
                              bool batteryMonitoring, uint8_t batteryPin,
@@ -31,7 +32,7 @@ void ContactSwitch::setup()
     pinMode(_pin, INPUT_PULLUP);
     // Optional: Set Zigbee device name and model
     // Add endpoint to Zigbee Core
-    Serial.println("Adding Zigbee endpoint to Zigbee Core");
+    DEBUG_PRINTLN("Adding Zigbee endpoint to Zigbee Core");
     Zigbee.addEndpoint(&_zigbeeSwitch);
     // Optional: Setup battery monitoring if enabled
     if (_batteryMonitoring) {
@@ -55,23 +56,27 @@ void ContactSwitch::tick()
         // Report to Zigbee using correct methods
         if (contactOpen) {
         _zigbeeSwitch.setClosed();
-        //digitalWrite(STATUS_LED_PIN, LOW);
-        Serial.println("Button is pressed.");
+        DEBUG_PRINTLN("Button is pressed.");
         } else {
         _zigbeeSwitch.setOpen();
-        //digitalWrite(STATUS_LED_PIN, HIGH);
-        Serial.println("Button is released.");
+        DEBUG_PRINTLN("Button is released.");
         }
     }
 }
 
+void ContactSwitch::switchWakeUp()
+{
+    _zigbeeSwitch.setOpen();
+    DEBUG_PRINTLN("Wake-up: Reporting button press event");
+}
+
 void ContactSwitch::IASZoneEnrollment()
 {
-    Serial.println("Enrolling IAS Zone...");
+    DEBUG_PRINTLN("Enrolling IAS Zone...");
     if (_zigbeeSwitch.requestIASZoneEnroll()) {
-        Serial.println("IAS Zone enrollment requested successfully");
+        DEBUG_PRINTLN("IAS Zone enrollment requested successfully");
     } else {
-        Serial.println("IAS Zone enrollment request failed");
+        DEBUG_PRINTLN("IAS Zone enrollment request failed");
     }
 }
 
