@@ -56,14 +56,18 @@ void ContactSwitch::tick()
         // Report to Zigbee using correct methods
         if (contactOpen) {
         _zigbeeSwitch.setClosed();
-        //digitalWrite(STATUS_LED_PIN, LOW);
         DEBUG_PRINTLN("Button is pressed.");
         } else {
         _zigbeeSwitch.setOpen();
-        //digitalWrite(STATUS_LED_PIN, HIGH);
         DEBUG_PRINTLN("Button is released.");
         }
     }
+}
+
+void ContactSwitch::switchWakeUp()
+{
+    _zigbeeSwitch.setOpen();
+    DEBUG_PRINTLN("Wake-up: Reporting button press event");
 }
 
 void ContactSwitch::IASZoneEnrollment()

@@ -24,6 +24,7 @@ public:
 
     void setup() override;
     void tick() override;
+    void switchWakeUp();
     void IASZoneEnrollment();
     bool getSwitchState();
 };
