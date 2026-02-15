@@ -2,7 +2,7 @@
 
 This document explains the partition table configuration required for Zigbee devices on ESP32.
 
-## 📋 Why Partition Tables Are Required
+## Why Partition Tables Are Required
 
 ESP32 Zigbee stack requires specific flash memory partitions for:
 - **Zigbee NVRAM Storage** (`zb_storage`) - Stores Zigbee network data, device information, and network keys
@@ -10,7 +10,7 @@ ESP32 Zigbee stack requires specific flash memory partitions for:
 
 Without these partitions, the Zigbee stack will fail to initialize.
 
-## 📊 Available Partition Tables
+## Available Partition Tables
 
 This project includes two partition table options:
 
@@ -28,7 +28,7 @@ This project includes two partition table options:
 - `zb_fct` (4KB) - Zigbee factory partition (required)
 - `coredump` (64KB) - Crash dump storage
 
-**Total:** 4MB (XIAO ESP32C6 flash size)
+**Total:** 4MB (typical ESP32-C6 flash size)
 
 ### 2. `partitions_zigbee_simple.csv` (Simple - No OTA)
 
@@ -42,16 +42,16 @@ This project includes two partition table options:
 - `zb_fct` (4KB) - Zigbee factory partition (required)
 - `coredump` (64KB) - Crash dump storage
 
-**Total:** 4MB (XIAO ESP32C6 flash size)
+**Total:** 4MB (typical ESP32-C6 flash size)
 
-## ⚙️ Configuration
+## Configuration
 
 ### Select Partition Table
 
 Edit `platformio.ini`:
 
 ```ini
-[env:xiao_esp32c6]
+[env:esp32c6]
 ; For OTA support (default)
 board_build.partitions = partitions_zigbee.csv
 
@@ -62,14 +62,14 @@ board_build.partitions = partitions_zigbee_simple.csv
 ### Build with Selected Partition Table
 
 ```bash
-# Build with default (OTA)
+# Build with default partition table
 pio run
 
-# Build with simple partition table
-pio run -e simple
+# Verify build
+pio run -v
 ```
 
-## 🔍 Partition Details
+## Partition Details
 
 ### Required Zigbee Partitions
 
@@ -104,12 +104,12 @@ pio run -e simple
 - Crash dump storage
 - Useful for debugging crashes
 
-## 📝 Creating Custom Partition Tables
+## Creating Custom Partition Tables
 
 If you need a custom partition layout:
 
 1. **Calculate Total Flash:**
-   - XIAO ESP32C6 has 4MB = 0x400000 bytes
+   - Most ESP32-C6 boards have 4MB = 0x400000 bytes
    - Total partition size must not exceed this
 
 2. **Required Partitions:**
@@ -132,7 +132,7 @@ If you need a custom partition layout:
    - Partitions must not overlap
    - Total size must fit in 4MB
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Issue: Zigbee stack won't initialize
 
@@ -171,25 +171,10 @@ If you need a custom partition layout:
 2. Verify `app0` and `app1` partitions exist
 3. Verify `otadata` partition exists
 
-## 📚 References
+## References
 
 - [ESP32 Partition Tables](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/partition-tables.html)
 - [PlatformIO Partition Tables](https://docs.platformio.org/en/latest/platforms/espressif32.html#partition-tables)
 - [ESP32 Zigbee SDK Documentation](https://docs.espressif.com/projects/esp-zigbee-sdk/)
 
-## ✅ Verification Checklist
-
-After configuring partition table:
-
-- [ ] Partition table CSV file exists
-- [ ] `platformio.ini` references partition table
-- [ ] Partition table includes `zb_storage` partition
-- [ ] Partition table includes `zb_fct` partition
-- [ ] Total partition size ≤ 4MB
-- [ ] Project builds successfully
-- [ ] Zigbee stack initializes correctly
-
----
-
-**Partition table configured?** Proceed to building and uploading the firmware!
 
