@@ -36,8 +36,8 @@
 
 // Voltage divider resistors for battery voltage measurement (in kΩ)
 // Adjust these values based on your actual resistor values
-#define V_DIVIDER_R1 55 //39; // Resistor between battery and pin
-#define V_DIVIDER_R2 99 //100; // Resistor between pin and ground
+#define V_DIVIDER_R1 56   // Resistor between battery and pin
+#define V_DIVIDER_R2 150  // Resistor between pin and ground
 
 // Battery monitoring interval (milliseconds)
 #define BATTERY_CHECK_INTERVAL 60000  // Check battery every minute
