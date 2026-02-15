@@ -136,7 +136,14 @@ void rgbLed(bool on) {
   uint8_t brightness = 255; // Adjust brightness (0-255)
   rgbLedWrite(RGB_BUILTIN, r, g, b);
 }
+
+// Check wake-up cause and handle RTC GPIO if woke from deep sleep
 esp_sleep_wakeup_cause_t onWakeCheck() {
+  #if !BATTERY_ENABLED
+    // Wake-up handling only makes sense with battery monitoring
+    return ESP_SLEEP_WAKEUP_UNDEFINED;
+  #endif
+
   // Check if we woke from deep sleep and deinit RTC GPIO if needed
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1) {
@@ -154,6 +161,11 @@ esp_sleep_wakeup_cause_t onWakeCheck() {
 
 // Handle wake up from deep sleep and check wake-up cause
 void handleWakeUp(esp_sleep_wakeup_cause_t wakeupReason) {
+  #if !BATTERY_ENABLED
+    // Wake-up handling only makes sense with battery monitoring
+    return;
+  #endif
+
   // Use wake reason after Zigbee is ready
   switch (wakeupReason) {
     case ESP_SLEEP_WAKEUP_EXT1:
@@ -175,6 +187,11 @@ void handleWakeUp(esp_sleep_wakeup_cause_t wakeupReason) {
 }
 // Put device into deep sleep
 void goToSleep() {
+  #if !BATTERY_ENABLED
+    // Sleep mode only makes sense with battery monitoring
+    return;
+  #endif
+  
   DEBUG_PRINTLN("Configuring wake-up sources...");
   
   // Configure RTC GPIO for wake-up
@@ -185,10 +202,7 @@ void goToSleep() {
   rtc_gpio_init(wakeup_pin);
   rtc_gpio_set_direction(wakeup_pin, RTC_GPIO_MODE_INPUT_ONLY);
   
-  // Configure pull resistors based on button type:
-  // If button connects to GROUND when pressed:
-  //   - Enable pull-UP (pin HIGH when button not pressed)
-  //   - Wake on LOW (button pressed)
+  // Configure pull resistors for wake-up pin:
   rtc_gpio_pulldown_dis(wakeup_pin);  // Disable pull-down
   rtc_gpio_pullup_en(wakeup_pin);     // Enable pull-up
   
@@ -200,11 +214,9 @@ void goToSleep() {
   
   DEBUG_PRINTLN("Wake on button press enabled (EXT1 with pull-up)");
   
-  // Optional: You can also enable timer wake-up for periodic checks
-  // Uncomment the following lines to wake up every X seconds:
-  // #define TIMER_WAKEUP_SECONDS 300  // Wake up every 5 minutes
-  // esp_sleep_enable_timer_wakeup(TIMER_WAKEUP_SECONDS * 1000000ULL);
-  // DEBUG_PRINTF("Timer wake-up enabled (every %d seconds)\n", TIMER_WAKEUP_SECONDS);
+  // Enable timer wake-up for periodic battery checks
+  esp_sleep_enable_timer_wakeup(TIMER_WAKEUP_SECONDS * 1000000ULL);
+  DEBUG_PRINTF("Timer wake-up enabled (every %d seconds)\n", TIMER_WAKEUP_SECONDS);
   
   // Turn off RGB LED to save power
   rgbLedWrite(RGB_BUILTIN, 0, 0, 0);

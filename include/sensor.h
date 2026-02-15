@@ -42,11 +42,14 @@ public:
     // Method to read battery voltage and report to Zigbee
     virtual void reportBatteryStatus() {
         if (!_batteryMonitoring) return; // Skip if battery monitoring not enabled
-        
+        static bool firstRun = true;
+
+
         // Battery voltage variables
         static unsigned long lastBatteryReport = 0;
-        if (millis() - lastBatteryReport >= _BATTERY_REPORT_INTERVAL) {
-                lastBatteryReport = millis();
+        if (firstRun || millis() - lastBatteryReport >= _BATTERY_REPORT_INTERVAL) {
+            lastBatteryReport = millis();
+            firstRun = false;
             
             // Read voltage in millivolts (more accurate than ADC conversion)
             uint32_t pinMillivolts = analogReadMilliVolts(_batteryPin);
