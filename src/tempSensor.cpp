@@ -71,23 +71,16 @@ void TempSensor::tick()
         _lastReportTime = millis();
         
         DEBUG_PRINTLN("Reading temperature sensor...");
-        sensors_event_t readings = _getReadings();
-    
-        float temperature = readings.temperature;
-        float humidity = readings.relative_humidity;
-        
-        DEBUG_PRINTF("Temperature: %.2f°C, Humidity: %.2f%%\n", temperature, humidity);
-        
-        // Update values in Zigbee endpoint
-        _zigbeeTempSensor.setTemperature(temperature);
-        _zigbeeTempSensor.setHumidity(humidity);
-        
-        // Report with retry mechanism
-        reportWithRetry(1000, 3);
+        reportReadings();
     }
-    
-    // Report battery status if enabled
-    reportBatteryStatus();
+}
+
+void TempSensor::reportReadings()
+{
+    sensors_event_t readings = _getReadings();
+    _zigbeeTempSensor.setTemperature(readings.temperature);
+    _zigbeeTempSensor.setHumidity(readings.relative_humidity);
+    _reportWithRetry(1000, 3);
 }
 
 sensors_event_t TempSensor::_getReadings()
@@ -147,7 +140,7 @@ void TempSensor::setReportInterval(unsigned long intervalMs)
     _reportInterval = intervalMs;
 }
 
-bool TempSensor::reportWithRetry(uint32_t timeout, uint8_t maxRetries)
+bool TempSensor::_reportWithRetry(uint32_t timeout, uint8_t maxRetries)
 {
     // Set data counter (2 for temp + humidity)
     _dataToSend = 2;

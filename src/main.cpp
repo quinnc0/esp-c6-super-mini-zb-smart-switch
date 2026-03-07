@@ -24,11 +24,11 @@
 #include "Zigbee.h"
 #include "config.h"
 #include "sensor.h"
-#include "contactSwitch.h"
+#include "tempSensor.h"
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
 
-ContactSwitch contactSwitch = ContactSwitch(SMART_SWITCH, CONTACT_SWITCH_PIN, BATTERY_ENABLED, BATTERY_VOLTAGE_PIN, V_DIVIDER_R1, V_DIVIDER_R2);
+TempSensor tempSensor = TempSensor(TEMP_SENSOR_ENDPOINT, TEMP_SENSOR_PIN, BATTERY_ENABLED, BATTERY_VOLTAGE_PIN, V_DIVIDER_R1, V_DIVIDER_R2);
 
 // Sleep configuration
 unsigned long loopStartTime = 0;
@@ -37,8 +37,6 @@ bool sleepTimerStarted = false;
 void setupZigbee();
 void rgbLed(bool on);
 void goToSleep();
-esp_sleep_wakeup_cause_t onWakeCheck();
-void handleWakeUp(esp_sleep_wakeup_cause_t wakeupReason);
 
 //===============================================================================//
 //------------------------------- Setup -----------------------------------------//
@@ -56,19 +54,26 @@ void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
   
   // Optional: Set Zigbee device name and model
-  contactSwitch.setManufacturerAndModel("Super Mini", "Smart Switch");
+  tempSensor.setManufacturerAndModel("Super Mini", "Drybox Humidity");
 
   // Add endpoints to Zigbee Core
-  contactSwitch.setup();
-  contactSwitch.setBatteryReportInterval(BATTERY_CHECK_INTERVAL);
+  tempSensor.setup();
+  tempSensor.setBatteryReportInterval(BATTERY_CHECK_INTERVAL);
 
   // Start Zigbee and connect to network
   setupZigbee();
   
-  contactSwitch.IASZoneEnrollment();
-  
   digitalWrite(STATUS_LED_PIN, HIGH);
-  handleWakeUp(wakeupReason); // Handle wake-up actions after Zigbee is ready
+
+  // report to zigbee, then go to sleep if battery monitoring enabled
+  // Read temperature sensor state and report to Zigbee
+  rgbLed(true); // Turn on RGB LED to indicate activity
+  tempSensor.reportReadings();
+  tempSensor.reportBatteryStatus();
+  rgbLed(false); // Turn off RGB LED after activity
+  if (BATTERY_ENABLED) {
+    goToSleep();
+  }
 }
 
 //===============================================================================//
@@ -81,21 +86,10 @@ void loop() {
     loopStartTime = millis();
     sleepTimerStarted = true;
   }
-
-  // Read contact switch state and report to Zigbee
-  contactSwitch.tick();
-  // Optional: Read battery voltage and report to Zigbee
-  contactSwitch.reportBatteryStatus();
-
-  // Update status LED based on switch state
-  if (contactSwitch.getSwitchState()) {
-    rgbLed(false); // RGB LED on when switch is closed
-    // reset sleep timer when switch is closed to keep device awake while in use
-  } else {
-    rgbLed(true); // RGB LED off when switch is open
-    loopStartTime = millis();
-  }
   
+  tempSensor.tick(); // Handle temperature sensor logic (reporting, retries, etc.)
+  tempSensor.reportBatteryStatus(); // Report battery status if enabled
+
   // Check if it's time to sleep
   if (millis() - loopStartTime >= SLEEP_DELAY_MS) {
     goToSleep();
@@ -159,32 +153,6 @@ esp_sleep_wakeup_cause_t onWakeCheck() {
   return wakeup_reason;
 }
 
-// Handle wake up from deep sleep and check wake-up cause
-void handleWakeUp(esp_sleep_wakeup_cause_t wakeupReason) {
-  #if !BATTERY_ENABLED
-    // Wake-up handling only makes sense with battery monitoring
-    return;
-  #endif
-
-  // Use wake reason after Zigbee is ready
-  switch (wakeupReason) {
-    case ESP_SLEEP_WAKEUP_EXT1:
-      DEBUG_PRINTLN("Action: Woke from button press");
-      // Give Zigbee a moment to stabilize after connection
-      delay(200);
-      // Read actual pin state and report to Zigbee
-      contactSwitch.switchWakeUp();
-      break;
-    case ESP_SLEEP_WAKEUP_TIMER:
-      DEBUG_PRINTLN("Action: Woke from timer");
-      break;
-    case ESP_SLEEP_WAKEUP_UNDEFINED:
-    default:
-      DEBUG_PRINTLN("Action: Normal startup");
-      // First boot or reset
-      break;
-  }
-}
 // Put device into deep sleep
 void goToSleep() {
   #if !BATTERY_ENABLED
@@ -194,37 +162,16 @@ void goToSleep() {
   
   DEBUG_PRINTLN("Configuring wake-up sources...");
   
-  // Configure RTC GPIO for wake-up
-  // ESP32-C6 RTC GPIO pins: GPIO0-GPIO7
-  gpio_num_t wakeup_pin = (gpio_num_t)CONTACT_SWITCH_PIN;
-  
-  // Isolate the pin for RTC use
-  rtc_gpio_init(wakeup_pin);
-  rtc_gpio_set_direction(wakeup_pin, RTC_GPIO_MODE_INPUT_ONLY);
-  
-  // Configure pull resistors for wake-up pin:
-  rtc_gpio_pulldown_dis(wakeup_pin);  // Disable pull-down
-  rtc_gpio_pullup_en(wakeup_pin);     // Enable pull-up
-  
-  // Configure EXT1 wake-up (ESP32-C6 only supports EXT1, not EXT0)
-  uint64_t ext1_pin_mask = (1ULL << CONTACT_SWITCH_PIN);
-  
-  // ESP_EXT1_WAKEUP_ANY_LOW: wake when pin goes LOW (for pull-up button)
-  esp_sleep_enable_ext1_wakeup(ext1_pin_mask, ESP_EXT1_WAKEUP_ANY_LOW);
-  
-  DEBUG_PRINTLN("Wake on button press enabled (EXT1 with pull-up)");
-  
   // Enable timer wake-up for periodic battery checks
   esp_sleep_enable_timer_wakeup(TIMER_WAKEUP_SECONDS * 1000000ULL);
   DEBUG_PRINTF("Timer wake-up enabled (every %d seconds)\n", TIMER_WAKEUP_SECONDS);
   
-  // Turn off RGB LED to save power
-  rgbLedWrite(RGB_BUILTIN, 0, 0, 0);
-  
   DEBUG_PRINTLN("Entering deep sleep now...");
   DEBUG_FLUSH(); // Wait for serial to finish
   
-  // Enter deep sleep
+  // Turn off LEDs to save power
+  rgbLedWrite(RGB_BUILTIN, 0, 0, 0);
   digitalWrite(STATUS_LED_PIN, LOW);
+  // Enter deep sleep
   esp_deep_sleep_start();
 }

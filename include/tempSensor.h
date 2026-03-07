@@ -30,6 +30,9 @@ private:
     // Static callback wrapper for C-style function pointer
     static void _responseCallback(zb_cmd_type_t command, esp_zb_zcl_status_t status);
 
+    // Report temperature with retry mechanism
+    bool _reportWithRetry(uint32_t timeout = 1000, uint8_t maxRetries = 3);
+
 public:
     // Constructor takes Zigbee endpoint ID
     // Optional battery monitoring with voltage divider resistor values (in kΩ)
@@ -41,11 +44,10 @@ public:
 
     void setup() override;
     void tick() override;
+
+    void reportReadings(); // Report sensor readings to Zigbee  
     
     // Set report interval (default: 60000ms = 1 minute)
     void setReportInterval(unsigned long intervalMs);
-    
-    // Report temperature with retry mechanism
-    bool reportWithRetry(uint32_t timeout = 1000, uint8_t maxRetries = 3);
 
 };
