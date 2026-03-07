@@ -23,9 +23,10 @@
 // Pin Configuration
 // ============================================================================
 
-#define CONTACT_SWITCH_PIN 3
+#define CONTACT_SWITCH_PIN 2
 #define STATUS_LED_PIN 15
-#define BATTERY_VOLTAGE_PIN 2
+#define BATTERY_VOLTAGE_PIN 3
+#define TEMP_SENSOR_PIN 0  // Not used for internal temperature sensor
 
 // ============================================================================
 // Battery Configuration (Optional)
@@ -43,11 +44,23 @@
 #define BATTERY_CHECK_INTERVAL 60000  // Check battery every minute
 
 // ============================================================================
+// Temperature Sensor Configuration
+// ============================================================================
+
+// Temperature reporting interval (milliseconds)
+#define TEMP_REPORT_INTERVAL 60000  // Report temperature every minute
+
+// Temperature retry configuration
+#define TEMP_REPORT_TIMEOUT 1000    // Timeout for each report attempt (ms)
+#define TEMP_MAX_RETRIES 3          // Maximum retry attempts
+
+// ============================================================================
 // Zigbee Configuration
 // ============================================================================
 
 // Device endpoints
 #define SMART_SWITCH 10
+#define TEMP_SENSOR_ENDPOINT 11
 
 // Zigbee network settings (probably not needed)
 #define ZIGBEE_CHANNEL 15         // Zigbee channel (11-26, avoid WiFi channels)
