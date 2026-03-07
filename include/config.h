@@ -62,6 +62,8 @@
 #define SMART_SWITCH 10
 #define TEMP_SENSOR_ENDPOINT 11
 
+#define ZIGBEE_KEEP_ALIVE_MS 10000  // Keep alive interval for Zigbee End Device (ms)
+
 // Zigbee network settings (probably not needed)
 #define ZIGBEE_CHANNEL 15         // Zigbee channel (11-26, avoid WiFi channels)
 #define ZIGBEE_PAN_ID 0xA209     // Personal Area Network ID (use your coordinator's PAN ID)

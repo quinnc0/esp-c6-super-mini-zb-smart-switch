@@ -1,6 +1,9 @@
 #include "tempSensor.h"
 #include "config.h"
 
+// Initialize static instance pointer fort callback access
+TempSensor* TempSensor::_instance = nullptr;
+
 TempSensor::TempSensor(uint8_t endpointId, uint8_t pin,
                        bool batteryMonitoring, uint8_t batteryPin,
                        uint32_t vDividerR1, uint32_t vDividerR2)
@@ -30,11 +33,21 @@ TempSensor::TempSensor(uint8_t endpointId, uint8_t pin,
 
 void TempSensor::setup()
 {
+    // Store instance pointer for static callback
+    _instance = this;
+    
     _zigbeeTempSensor.setMinMaxValue(-40, 80);
     _zigbeeTempSensor.setTolerance(0.5);
     _zigbeeTempSensor.addHumiditySensor(0, 100, 2, 30);
 
+    // set callback for attribute report responses using static wrapper
+    _zigbeeTempSensor.onDefaultResponse(_responseCallback);
+
     Zigbee.addEndpoint(&_zigbeeTempSensor);
+
+    // Create a custom Zigbee configuration for End Device with keep alive 10s to avoid interference with reporting data
+    esp_zb_cfg_t zigbeeConfig = ZIGBEE_DEFAULT_ED_CONFIG();
+    zigbeeConfig.nwk_cfg.zed_cfg.keep_alive = ZIGBEE_KEEP_ALIVE_MS;
 
     // Optional: Setup battery monitoring if enabled
     if (_batteryMonitoring) {
@@ -96,19 +109,22 @@ sensors_event_t TempSensor::_getReadings()
     return event;
 }
 
-void TempSensor::handleResponse(uint8_t command, uint8_t status, uint8_t endpoint, uint16_t cluster)
+// Static callback wrapper - forwards to instance method
+void TempSensor::_responseCallback(zb_cmd_type_t command, esp_zb_zcl_status_t status)
 {
-    // Only handle responses for this endpoint
-    if (endpoint != _endpointId) {
-        return;
+    if (_instance != nullptr) {
+        _instance->_handleResponse(command, status);
     }
-    
+}
+
+void TempSensor::_handleResponse(zb_cmd_type_t command, esp_zb_zcl_status_t status)
+{
     // Only handle attribute report responses
     if (command != 0x01) {  // ZB_CMD_REPORT_ATTRIBUTE = 0x01
         return;
     }
     
-    DEBUG_PRINTF("TempSensor response - Status: %d, Endpoint: %d, Cluster: 0x%04x\n", status, endpoint, cluster);
+    DEBUG_PRINTF("TempSensor response - Status: %d\n", status);
     
     switch (status) {
         case 0x00:  // ESP_ZB_ZCL_STATUS_SUCCESS

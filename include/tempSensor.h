@@ -20,7 +20,15 @@ private:
     unsigned long _lastReportTime;
     unsigned long _reportInterval;  // Interval between temperature reports (ms)
 
+    // Static instance pointer for callback (assuming single temp sensor)
+    static TempSensor* _instance;
+
     sensors_event_t _getReadings();
+    // Response callback handler
+    void _handleResponse(zb_cmd_type_t command, esp_zb_zcl_status_t status);
+    
+    // Static callback wrapper for C-style function pointer
+    static void _responseCallback(zb_cmd_type_t command, esp_zb_zcl_status_t status);
 
 public:
     // Constructor takes Zigbee endpoint ID
@@ -33,9 +41,6 @@ public:
 
     void setup() override;
     void tick() override;
-    
-    // Response callback handler
-    void handleResponse(uint8_t command, uint8_t status, uint8_t endpoint, uint16_t cluster);
     
     // Set report interval (default: 60000ms = 1 minute)
     void setReportInterval(unsigned long intervalMs);
