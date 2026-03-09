@@ -1,5 +1,6 @@
 #include "tempSensor.h"
 #include "config.h"
+#include "ledIndicator.h"
 
 // Initialize static instance pointer fort callback access
 TempSensor* TempSensor::_instance = nullptr;
@@ -37,23 +38,25 @@ void TempSensor::setup()
     _instance = this;
     
     _zigbeeTempSensor.setMinMaxValue(-40, 80);
+    _zigbeeTempSensor.setDefaultValue(25);
     _zigbeeTempSensor.setTolerance(0.5);
     _zigbeeTempSensor.addHumiditySensor(0, 100, 2, 30);
 
-    // set callback for attribute report responses using static wrapper
-    _zigbeeTempSensor.onDefaultResponse(_responseCallback);
+    // Callback disabled until we fix why callbacks aren't firing
+    // _zigbeeTempSensor.onDefaultResponse(_responseCallback);
 
     Zigbee.addEndpoint(&_zigbeeTempSensor);
 
     // Create a custom Zigbee configuration for End Device with keep alive 10s to avoid interference with reporting data
-    esp_zb_cfg_t zigbeeConfig = ZIGBEE_DEFAULT_ED_CONFIG();
-    zigbeeConfig.nwk_cfg.zed_cfg.keep_alive = ZIGBEE_KEEP_ALIVE_MS;
+    // esp_zb_cfg_t zigbeeConfig = ZIGBEE_DEFAULT_ED_CONFIG();
+    // zigbeeConfig.nwk_cfg.zed_cfg.keep_alive = ZIGBEE_KEEP_ALIVE_MS;
 
     // Optional: Setup battery monitoring if enabled
     if (_batteryMonitoring) {
         // Init battery voltage pin
         pinMode(_batteryPin, INPUT);
-        _zigbeeTempSensor.setPowerSource(ZB_POWER_SOURCE_BATTERY);
+        // Temporarily comment out power source to test ZHA
+        // _zigbeeTempSensor.setPowerSource(ZB_POWER_SOURCE_BATTERY);
     }
 
     // DHT sensor initialization
@@ -78,9 +81,25 @@ void TempSensor::tick()
 void TempSensor::reportReadings()
 {
     sensors_event_t readings = _getReadings();
+    // Blink 3 times: got readings
+    //blinkLed(STATUS_LED_PIN, 3, 150, 150);
     _zigbeeTempSensor.setTemperature(readings.temperature);
     _zigbeeTempSensor.setHumidity(readings.relative_humidity);
-    _reportWithRetry(1000, 3);
+    delay(500);
+    if (isnan(readings.temperature) || isnan(readings.relative_humidity)) {
+        //blinkLed(STATUS_LED_PIN, 5, 200, 100); 
+    }
+    else {
+        // Blink 5 times: values set successfully
+        //blinkLed(STATUS_LED_PIN, 5, 100, 100); // Blink again to indicate values set
+    }
+    
+    // Report without retry for now (callbacks not working)
+    _zigbeeTempSensor.report();
+    //delay(100);  // Brief delay to let report send
+    
+    // TODO: Fix callback mechanism and re-enable retry
+    // _reportWithRetry(1000, 3);
 }
 
 sensors_event_t TempSensor::_getReadings()
@@ -152,9 +171,16 @@ bool TempSensor::_reportWithRetry(uint32_t timeout, uint8_t maxRetries)
     
     unsigned long startTime = millis();
     uint8_t tries = 0;
+    unsigned long lastYield = millis();
     
     // Wait for confirmation with retry logic
     while (_dataToSend != 0 && tries < maxRetries) {
+        // Feed watchdog frequently to prevent reset
+        if (millis() - lastYield >= 10) {
+            yield();  // Allows background tasks to run
+            lastYield = millis();
+        }
+        
         // Check for immediate resend on failure
         if (_resend) {
             DEBUG_PRINTLN("Resending on failure!");

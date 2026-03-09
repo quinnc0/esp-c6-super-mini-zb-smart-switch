@@ -37,21 +37,31 @@ bool sleepTimerStarted = false;
 void setupZigbee();
 void rgbLed(bool on);
 void goToSleep();
+void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs);
+void factoryReset(uint8_t button);
 
 //===============================================================================//
 //------------------------------- Setup -----------------------------------------//
 //===============================================================================//
 void setup() {
+  rgbLed(false); // Ensure RGB LED is off at startup
   #if ENABLE_SERIAL
     Serial.begin(SERIAL_BAUD_RATE);
     delay(50); // Short delay to ensure serial is ready before printing
   #endif
 
-  DEBUG_PRINTLN("CONTACT SWITCH ZIGBEE - PlatformIO");
-  esp_sleep_wakeup_cause_t wakeupReason = onWakeCheck(); // Check if we woke from deep sleep and handle RTC GPIO if needed
+  DEBUG_PRINTLN("\n\n=================================");
+  DEBUG_PRINTLN("TEMP SENSOR ZIGBEE - Booting...");
+  DEBUG_PRINTLN("=================================");
 
   // Init status LED pin
   pinMode(STATUS_LED_PIN, OUTPUT);
+  
+  // TEMPORARY: Force factory reset to clear old TMP36 identity from NVS
+  // Uncomment this ONCE, flash, let it run, then comment it out again
+  // Zigbee.factoryReset();
+  // delay(3000);
+  // DEBUG_PRINTLN("Factory reset complete! Now reflash with this commented out.");
   
   // Optional: Set Zigbee device name and model
   tempSensor.setManufacturerAndModel("Super Mini", "Drybox Humidity");
@@ -63,17 +73,30 @@ void setup() {
   // Start Zigbee and connect to network
   setupZigbee();
   
-  digitalWrite(STATUS_LED_PIN, HIGH);
+  // Blink 2 times: Zigbee connected
+  blinkLed(STATUS_LED_PIN, 2, 200, 200);
 
   // report to zigbee, then go to sleep if battery monitoring enabled
-  // Read temperature sensor state and report to Zigbee
-  rgbLed(true); // Turn on RGB LED to indicate activity
-  tempSensor.reportReadings();
-  tempSensor.reportBatteryStatus();
-  rgbLed(false); // Turn off RGB LED after activity
   if (BATTERY_ENABLED) {
-    goToSleep();
+    delay(2000); // Wait 2 seconds for network to stabilize
+    
+    // Read temperature sensor state and report to Zigbee
+    rgbLed(true); // Turn on RGB LED to indicate activity
+    tempSensor.reportReadings();
+    blinkLed(STATUS_LED_PIN, 3, 200, 200);
+    // tempSensor.reportBatteryStatus();
+    blinkLed(STATUS_LED_PIN, 2, 300, 100);
+    rgbLed(false); // Turn off RGB LED after activity
+    
+    // Blink 5 times rapidly: Report completed
+    blinkLed(STATUS_LED_PIN, 5, 100, 100);
+    
+    // goToSleep();
+  } else {
+    // Not in battery mode - solid LED on
+    digitalWrite(STATUS_LED_PIN, HIGH);
   }
+
 }
 
 //===============================================================================//
@@ -86,14 +109,15 @@ void loop() {
     loopStartTime = millis();
     sleepTimerStarted = true;
   }
-  
+
   tempSensor.tick(); // Handle temperature sensor logic (reporting, retries, etc.)
-  tempSensor.reportBatteryStatus(); // Report battery status if enabled
+  //tempSensor.reportBatteryStatus(); // Report battery status if enabled
 
   // Check if it's time to sleep
   if (millis() - loopStartTime >= SLEEP_DELAY_MS) {
-    goToSleep();
+    //goToSleep();
   }
+  //factoryReset(BOOT_PIN);
 }
 
 //===============================================================================//
@@ -120,15 +144,6 @@ void setupZigbee() {
         DEBUG_PRINTLN();
         DEBUG_PRINTLN("SUCCESS! Zigbee connected!");
         return;
-}
-
-// Control RGB LED
-void rgbLed(bool on) {
-  uint8_t r = on ? 255 : 0;
-  uint8_t g = on ? 0 : 0;
-  uint8_t b = on ? 10 : 0;
-  uint8_t brightness = 255; // Adjust brightness (0-255)
-  rgbLedWrite(RGB_BUILTIN, r, g, b);
 }
 
 // Check wake-up cause and handle RTC GPIO if woke from deep sleep
@@ -174,4 +189,27 @@ void goToSleep() {
   digitalWrite(STATUS_LED_PIN, LOW);
   // Enter deep sleep
   esp_deep_sleep_start();
+}
+
+void factoryReset(uint8_t button) {
+      // Checking button for factory reset
+  if (digitalRead(button) == LOW) {  // Push button pressed
+    // Key debounce handling
+    delay(100);
+    int startTime = millis();
+    while (digitalRead(button) == LOW) {
+      delay(50);
+      if ((millis() - startTime) > 10000) {
+        // If key pressed for more than 10secs, factory reset Zigbee and reboot
+        Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
+        delay(1000);
+        // Optional set reset in factoryReset to false, to not restart device after erasing nvram, but set it to endless sleep manually instead
+        Zigbee.factoryReset(false);
+        Serial.println("Going to endless sleep, press RESET button or power off/on the device to wake up");
+        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+        esp_deep_sleep_start();
+      }
+    }
+  }
+  delay(100);
 }

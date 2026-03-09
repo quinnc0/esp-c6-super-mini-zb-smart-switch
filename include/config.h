@@ -26,7 +26,7 @@
 #define CONTACT_SWITCH_PIN 2
 #define STATUS_LED_PIN 15
 #define BATTERY_VOLTAGE_PIN 3
-#define TEMP_SENSOR_PIN 0  // Not used for internal temperature sensor
+#define TEMP_SENSOR_PIN 1
 
 // ============================================================================
 // Battery Configuration (Optional)
@@ -48,7 +48,7 @@
 // ============================================================================
 
 // Temperature reporting interval (milliseconds)
-#define TEMP_REPORT_INTERVAL 60000  // Report temperature every minute
+#define TEMP_REPORT_INTERVAL 5000  // Report temperature X ms
 
 // Temperature retry configuration
 #define TEMP_REPORT_TIMEOUT 1000    // Timeout for each report attempt (ms)
@@ -72,7 +72,7 @@
 // Sleep Configuration
 // ============================================================================
 
-#define SLEEP_DELAY_MS 5000         // Sleep after 5 seconds in loop
+#define SLEEP_DELAY_MS 50000         // Sleep after 5 seconds in loop
 #define TIMER_WAKEUP_SECONDS 12000    // Wake up every X seconds for battery check (only used if BATTERY_ENABLED)
 
 // ============================================================================
