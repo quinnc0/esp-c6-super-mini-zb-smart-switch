@@ -38,7 +38,6 @@ void setupZigbee();
 void rgbLed(bool on);
 void goToSleep();
 void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs);
-void factoryReset(uint8_t button);
 
 //===============================================================================//
 //------------------------------- Setup -----------------------------------------//
@@ -56,12 +55,6 @@ void setup() {
 
   // Init status LED pin
   pinMode(STATUS_LED_PIN, OUTPUT);
-  
-  // TEMPORARY: Force factory reset to clear old TMP36 identity from NVS
-  // Uncomment this ONCE, flash, let it run, then comment it out again
-  // Zigbee.factoryReset();
-  // delay(3000);
-  // DEBUG_PRINTLN("Factory reset complete! Now reflash with this commented out.");
   
   // Optional: Set Zigbee device name and model
   tempSensor.setManufacturerAndModel("Super Mini", "Drybox Humidity");
@@ -91,7 +84,7 @@ void setup() {
     // Blink 5 times rapidly: Report completed
     blinkLed(STATUS_LED_PIN, 5, 100, 100);
     
-    // goToSleep();
+    //goToSleep();
   } else {
     // Not in battery mode - solid LED on
     digitalWrite(STATUS_LED_PIN, HIGH);
@@ -115,9 +108,8 @@ void loop() {
 
   // Check if it's time to sleep
   if (millis() - loopStartTime >= SLEEP_DELAY_MS) {
-    //goToSleep();
+    goToSleep();
   }
-  //factoryReset(BOOT_PIN);
 }
 
 //===============================================================================//
@@ -146,28 +138,6 @@ void setupZigbee() {
         return;
 }
 
-// Check wake-up cause and handle RTC GPIO if woke from deep sleep
-esp_sleep_wakeup_cause_t onWakeCheck() {
-  #if !BATTERY_ENABLED
-    // Wake-up handling only makes sense with battery monitoring
-    return ESP_SLEEP_WAKEUP_UNDEFINED;
-  #endif
-
-  // Check if we woke from deep sleep and deinit RTC GPIO if needed
-  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
-  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT1) {
-    DEBUG_PRINTLN("Woke up from button press!");
-    // Deinitialize RTC GPIO so pinMode can reconfigure it
-    rtc_gpio_deinit((gpio_num_t)CONTACT_SWITCH_PIN);
-  } else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
-    DEBUG_PRINTLN("Woke up from timer!");
-    rtc_gpio_deinit((gpio_num_t)CONTACT_SWITCH_PIN);
-  } else {
-    DEBUG_PRINTLN("Normal startup (not from deep sleep)");
-  }
-  return wakeup_reason;
-}
-
 // Put device into deep sleep
 void goToSleep() {
   #if !BATTERY_ENABLED
@@ -189,27 +159,4 @@ void goToSleep() {
   digitalWrite(STATUS_LED_PIN, LOW);
   // Enter deep sleep
   esp_deep_sleep_start();
-}
-
-void factoryReset(uint8_t button) {
-      // Checking button for factory reset
-  if (digitalRead(button) == LOW) {  // Push button pressed
-    // Key debounce handling
-    delay(100);
-    int startTime = millis();
-    while (digitalRead(button) == LOW) {
-      delay(50);
-      if ((millis() - startTime) > 10000) {
-        // If key pressed for more than 10secs, factory reset Zigbee and reboot
-        Serial.println("Resetting Zigbee to factory and rebooting in 1s.");
-        delay(1000);
-        // Optional set reset in factoryReset to false, to not restart device after erasing nvram, but set it to endless sleep manually instead
-        Zigbee.factoryReset(false);
-        Serial.println("Going to endless sleep, press RESET button or power off/on the device to wake up");
-        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
-        esp_deep_sleep_start();
-      }
-    }
-  }
-  delay(100);
 }
