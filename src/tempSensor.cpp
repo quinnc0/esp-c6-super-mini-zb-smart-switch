@@ -56,7 +56,7 @@ void TempSensor::setup()
         // Init battery voltage pin
         pinMode(_batteryPin, INPUT);
         // Temporarily comment out power source to test ZHA
-        // _zigbeeTempSensor.setPowerSource(ZB_POWER_SOURCE_BATTERY);
+        _zigbeeTempSensor.setPowerSource(ZB_POWER_SOURCE_BATTERY);
     }
 
     // DHT sensor initialization
@@ -81,22 +81,12 @@ void TempSensor::tick()
 void TempSensor::reportReadings()
 {
     sensors_event_t readings = _getReadings();
-    // Blink 3 times: got readings
-    //blinkLed(STATUS_LED_PIN, 3, 150, 150);
     _zigbeeTempSensor.setTemperature(readings.temperature);
     _zigbeeTempSensor.setHumidity(readings.relative_humidity);
-    delay(500);
-    if (isnan(readings.temperature) || isnan(readings.relative_humidity)) {
-        //blinkLed(STATUS_LED_PIN, 5, 200, 100); 
-    }
-    else {
-        // Blink 5 times: values set successfully
-        //blinkLed(STATUS_LED_PIN, 5, 100, 100); // Blink again to indicate values set
-    }
-    
+    delay(100);    
     // Report without retry for now (callbacks not working)
     _zigbeeTempSensor.report();
-    //delay(100);  // Brief delay to let report send
+    delay(100);  // Brief delay to let report send
     
     // TODO: Fix callback mechanism and re-enable retry
     // _reportWithRetry(1000, 3);
