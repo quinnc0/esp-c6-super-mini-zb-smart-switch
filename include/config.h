@@ -23,10 +23,10 @@
 // Pin Configuration
 // ============================================================================
 
-#define CONTACT_SWITCH_PIN 2
+#define CONTACT_SWITCH_PIN 3
 #define STATUS_LED_PIN 15
-#define BATTERY_VOLTAGE_PIN 3
-#define TEMP_SENSOR_PIN 1
+#define BATTERY_VOLTAGE_PIN 2
+#define TEMP_SENSOR_PIN 4
 
 // ============================================================================
 // Battery Configuration (Optional)
@@ -72,7 +72,7 @@
 // Sleep Configuration
 // ============================================================================
 
-#define SLEEP_DELAY_MS 50000         // Sleep after 5 seconds in loop
+#define SLEEP_DELAY_MS 10000         // Sleep after 10 seconds in loop
 #define TIMER_WAKEUP_SECONDS 12000    // Wake up every X seconds for battery check (only used if BATTERY_ENABLED)
 
 // ============================================================================

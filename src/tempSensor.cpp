@@ -14,7 +14,7 @@ TempSensor::TempSensor(uint8_t endpointId, uint8_t pin,
     // Store endpoint ID and pin for later use
     _endpointId = endpointId;
     _pin = pin;
-    _dht = new DHT_Unified(_pin, DHT22);
+    _dht = new DHT(_pin, DHT22);
     // Optional: Setup battery monitoring if enabled
     if (batteryMonitoring && batteryPin != 255) {
         _batteryMonitoring = true;
@@ -38,7 +38,7 @@ void TempSensor::setup()
     _instance = this;
     
     _zigbeeTempSensor.setMinMaxValue(-40, 80);
-    _zigbeeTempSensor.setDefaultValue(25);
+    _zigbeeTempSensor.setDefaultValue(20);
     _zigbeeTempSensor.setTolerance(0.5);
     _zigbeeTempSensor.addHumiditySensor(0, 100, 2, 30);
 
@@ -61,10 +61,8 @@ void TempSensor::setup()
 
     // DHT sensor initialization
     _dht->begin();
-    sensor_t sensor;
-    _dht->temperature().getSensor(&sensor);
-    _dht->humidity().getSensor(&sensor);
-    _delayMS = sensor.min_delay / 1000;
+    // DHT22 minimum sampling period is 2 seconds
+    _delayMS = 2000;
 }
 
 void TempSensor::tick()
@@ -80,9 +78,10 @@ void TempSensor::tick()
 
 void TempSensor::reportReadings()
 {
-    sensors_event_t readings = _getReadings();
-    _zigbeeTempSensor.setTemperature(readings.temperature);
-    _zigbeeTempSensor.setHumidity(readings.relative_humidity);
+    float temp, humidity;
+    _getReadings(temp, humidity);
+    _zigbeeTempSensor.setTemperature(temp);
+    _zigbeeTempSensor.setHumidity(humidity);
     delay(100);    
     // Report without retry for now (callbacks not working)
     _zigbeeTempSensor.report();
@@ -92,23 +91,25 @@ void TempSensor::reportReadings()
     // _reportWithRetry(1000, 3);
 }
 
-sensors_event_t TempSensor::_getReadings()
+void TempSensor::_getReadings(float& temp, float& humidity)
 {
-    // Get temperature event and print its value.
-    sensors_event_t event;
-    _dht->temperature().getEvent(&event);
-    if (isnan(event.temperature)) {
+    // Read temperature and humidity using simple DHT API
+    temp = _dht->readTemperature();  // Returns Celsius by default
+    humidity = _dht->readHumidity();
+    
+    if (isnan(temp)) {
         DEBUG_PRINTLN("Error reading temperature!");
+        temp = 20.0;  // Default fallback value
     } else {
-        DEBUG_PRINTF("Temperature: %.2f°C\n", event.temperature);
+        DEBUG_PRINTF("Temperature: %.2f°C\n", temp);
     }
-    _dht->humidity().getEvent(&event);
-    if (isnan(event.relative_humidity)) {
+    
+    if (isnan(humidity)) {
         DEBUG_PRINTLN("Error reading humidity!");
+        humidity = 50.0;  // Default fallback value
     } else {
-        DEBUG_PRINTF("Humidity: %.2f%%\n", event.relative_humidity);
+        DEBUG_PRINTF("Humidity: %.2f%%\n", humidity);
     }
-    return event;
 }
 
 // Static callback wrapper - forwards to instance method

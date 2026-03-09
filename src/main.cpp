@@ -38,6 +38,7 @@ void setupZigbee();
 void rgbLed(bool on);
 void goToSleep();
 void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs);
+void blinkRGB();
 
 //===============================================================================//
 //------------------------------- Setup -----------------------------------------//
@@ -108,8 +109,9 @@ void loop() {
 
   // Check if it's time to sleep
   if (millis() - loopStartTime >= SLEEP_DELAY_MS) {
-    goToSleep();
+    //goToSleep();
   }
+  blinkRGB(); // Handle RGB LED blinking
 }
 
 //===============================================================================//
@@ -159,4 +161,17 @@ void goToSleep() {
   digitalWrite(STATUS_LED_PIN, LOW);
   // Enter deep sleep
   esp_deep_sleep_start();
+}
+
+// rgbLED blink to indicate alive status, using millis for non-blocking timing
+void blinkRGB() {
+  static unsigned long lastBlinkTime = 0;
+  static bool ledOn = false;
+   unsigned long blinkTiming = 250; 
+  
+  if ( (ledOn && (millis() - lastBlinkTime >= blinkTiming)) || (!ledOn && (millis() - lastBlinkTime >= blinkTiming * 4)) ) {
+    ledOn = !ledOn; // Toggle LED state
+    rgbLed(ledOn);
+    lastBlinkTime = millis();
+  }
 }

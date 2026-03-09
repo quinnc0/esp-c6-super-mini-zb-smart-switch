@@ -4,14 +4,12 @@
 #include "sensor.h"
 #include <cstdint>
 #include "Zigbee.h"
-#include <Adafruit_Sensor.h>
 #include <DHT.h>
-#include <DHT_U.h>
 
 class TempSensor : public ZbSensor {
 private:
     ZigbeeTempSensor _zigbeeTempSensor;
-    DHT_Unified* _dht;  // DHT sensor object (for external temp/humidity sensor)
+    DHT* _dht;  // DHT sensor object (for external temp/humidity sensor)
     uint32_t _delayMS;
 
     // Response tracking for retry mechanism
@@ -23,7 +21,7 @@ private:
     // Static instance pointer for callback (assuming single temp sensor)
     static TempSensor* _instance;
 
-    sensors_event_t _getReadings();
+    void _getReadings(float& temp, float& humidity);
     // Response callback handler
     void _handleResponse(zb_cmd_type_t command, esp_zb_zcl_status_t status);
     
