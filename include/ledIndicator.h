@@ -3,7 +3,10 @@
 #include <Arduino.h>
 
 // Blink LED with configurable pattern
-void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs) {
+void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs, bool debug_override = false) {
+  if (!ENABLE_LED_DEBUG && !debug_override) { // Skip blinking if debug mode is disabled (unless overridden)
+    return;
+  }
   for(uint8_t i = 0; i < count; i++) {
     digitalWrite(pin, HIGH);
     delay(onMs);

@@ -19,6 +19,8 @@
   #define DEBUG_FLUSH()
 #endif
 
+#define ENABLE_LED_DEBUG true
+
 // ============================================================================
 // Pin Configuration
 // ============================================================================
@@ -73,7 +75,7 @@
 // ============================================================================
 
 #define SLEEP_DELAY_MS 10000         // Sleep after 10 seconds in loop
-#define TIMER_WAKEUP_SECONDS 12000    // Wake up every X seconds for battery check (only used if BATTERY_ENABLED)
+#define TIMER_WAKEUP_SECONDS 500    // Wake up every X seconds for battery check (only used if BATTERY_ENABLED)
 
 // ============================================================================
 // Serial Configuration

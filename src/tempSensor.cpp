@@ -99,14 +99,12 @@ void TempSensor::_getReadings(float& temp, float& humidity)
     
     if (isnan(temp)) {
         DEBUG_PRINTLN("Error reading temperature!");
-        temp = 20.0;  // Default fallback value
     } else {
         DEBUG_PRINTF("Temperature: %.2f°C\n", temp);
     }
     
     if (isnan(humidity)) {
         DEBUG_PRINTLN("Error reading humidity!");
-        humidity = 50.0;  // Default fallback value
     } else {
         DEBUG_PRINTF("Humidity: %.2f%%\n", humidity);
     }

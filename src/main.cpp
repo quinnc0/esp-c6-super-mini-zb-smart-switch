@@ -37,8 +37,8 @@ bool sleepTimerStarted = false;
 void setupZigbee();
 void rgbLed(bool on);
 void goToSleep();
-void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs);
-void blinkRGB();
+void blinkLed(uint8_t pin, uint8_t count, uint16_t onMs, uint16_t offMs, bool debug_override = false);
+void blinkRGB(bool debug_override = false);
 
 //===============================================================================//
 //------------------------------- Setup -----------------------------------------//
@@ -75,17 +75,21 @@ void setup() {
     delay(2000); // Wait 2 seconds for network to stabilize
     
     // Read temperature sensor state and report to Zigbee
-    rgbLed(true); // Turn on RGB LED to indicate activity
+    if (ENABLE_LED_DEBUG) {
+      rgbLed(true); // Turn on RGB LED to indicate activity
+    }
     tempSensor.reportReadings();
     blinkLed(STATUS_LED_PIN, 3, 200, 200);
-    // tempSensor.reportBatteryStatus();
+    tempSensor.reportBatteryStatus();
     blinkLed(STATUS_LED_PIN, 2, 300, 100);
-    rgbLed(false); // Turn off RGB LED after activity
+    if (ENABLE_LED_DEBUG) {
+      rgbLed(false); // Turn off RGB LED after activity
+    }
+    
     
     // Blink 5 times rapidly: Report completed
     blinkLed(STATUS_LED_PIN, 5, 100, 100);
     
-    //goToSleep();
   } else {
     // Not in battery mode - solid LED on
     digitalWrite(STATUS_LED_PIN, HIGH);
@@ -105,13 +109,15 @@ void loop() {
   }
 
   tempSensor.tick(); // Handle temperature sensor logic (reporting, retries, etc.)
-  //tempSensor.reportBatteryStatus(); // Report battery status if enabled
+  tempSensor.reportBatteryStatus(); // Report battery status if enabled
 
   // Check if it's time to sleep
   if (millis() - loopStartTime >= SLEEP_DELAY_MS) {
-    //goToSleep();
+    goToSleep();
   }
-  blinkRGB(); // Handle RGB LED blinking
+
+  blinkRGB(); // Handle RGB LED blinking for alive status
+
 }
 
 //===============================================================================//
@@ -164,12 +170,16 @@ void goToSleep() {
 }
 
 // rgbLED blink to indicate alive status, using millis for non-blocking timing
-void blinkRGB() {
+void blinkRGB(bool debug_override) {
   static unsigned long lastBlinkTime = 0;
   static bool ledOn = false;
-   unsigned long blinkTiming = 250; 
-  
-  if ( (ledOn && (millis() - lastBlinkTime >= blinkTiming)) || (!ledOn && (millis() - lastBlinkTime >= blinkTiming * 4)) ) {
+  if (!ENABLE_LED_DEBUG && !debug_override) { // Skip blinking if debug mode is disabled (unless overridden)
+    return;
+  }
+
+  unsigned long blinkTiming = 100; 
+
+  if ( (ledOn && (millis() - lastBlinkTime >= blinkTiming)) || (!ledOn && (millis() - lastBlinkTime >= blinkTiming * 9)) ) {
     ledOn = !ledOn; // Toggle LED state
     rgbLed(ledOn);
     lastBlinkTime = millis();
