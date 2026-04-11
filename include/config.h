@@ -19,7 +19,7 @@
   #define DEBUG_FLUSH()
 #endif
 
-#define ENABLE_LED_DEBUG true
+#define ENABLE_LED_DEBUG false // Set to true to enable LED debug indicators (will increase power consumption)
 
 // ============================================================================
 // Pin Configuration
