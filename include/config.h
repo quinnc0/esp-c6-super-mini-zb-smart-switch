@@ -74,8 +74,8 @@
 // Sleep Configuration
 // ============================================================================
 
-#define SLEEP_DELAY_MS 10000         // Sleep after 10 seconds in loop
-#define TIMER_WAKEUP_SECONDS 500    // Wake up every X seconds for battery check (only used if BATTERY_ENABLED)
+#define SLEEP_DELAY_MS 8000         // Sleep after 8 seconds in loop
+#define TIMER_WAKEUP_SECONDS 1000    // Wake up every X seconds for battery check (only used if BATTERY_ENABLED)
 
 // ============================================================================
 // Serial Configuration
